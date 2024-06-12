@@ -1,0 +1,13 @@
+{
+  "name": "CHORD LOGIC",
+  "version": "1.0.0",
+  "author": "jaboc laux",
+  "description": "testing some chord logic for metrOhgnome",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "license": "ISC"
+}
