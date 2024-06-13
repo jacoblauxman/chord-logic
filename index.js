@@ -9,9 +9,6 @@ const __dirname = path.dirname(__filename);
 const filePath = path.join(__dirname, "data.txt");
 const fileData = fs.readFileSync(filePath, "utf8");
 
-const chordName = process.argv[2];
-const newChordName = process.argv[3];
-
 //
 
 //
@@ -28,13 +25,18 @@ const {
   absByNote,
 } = createNotesObjects();
 
+const chordName = process.argv[2];
+const chords = process.argv.slice(3);
+let prevChordObj = null;
+
 if (chordName) {
-  let parsed = parseName(chordName);
-  let defaultChord = getDefaultChord(parsed);
+  let defaultChord = getDefaultChord(chordName);
   console.log(defaultChord);
-  if (newChordName) {
-    let newChord = getNewChord(defaultChord, newChordName);
-    console.log(newChord);
+  prevChordObj = defaultChord;
+  for (let newChord of chords) {
+    let newChordObj = getNewChord(prevChordObj, newChord);
+    console.log("Next Chord in Progression: ", newChordObj);
+    prevChordObj = newChordObj;
   }
 }
 
@@ -129,9 +131,9 @@ function getChordSpelling(chord) {
   return spelling;
 }
 
-function getDefaultChord() {
+function getDefaultChord(chordName) {
   const [name, qual] = parseName(chordName);
-  let chord = `${name}${qual}`;
+  let chord = `${name.toUpperCase()}${qual}`;
 
   // // TESTING: for working with 'default' chord values (without yet making separate data structure for those spellings):
   let [root, third, fifth] = getChordSpelling(chord);
@@ -178,24 +180,35 @@ function getNewChord(oldChordObj, newChordName) {
 
   // parse
   const [newName, newQual] = parseName(newChordName);
+  const newChord = `${newName.toUpperCase()}${newQual}`;
 
-  const newChord = `${newName}${newQual}`;
-  console.log(newChord);
   // get notes
   const newSpelling = getChordSpelling(newChord);
-  console.log(newSpelling);
-  // find best choices
+  const [newRoot, newThird, newFifth] = newSpelling;
+
+  // find best choices + format return data
   const newAbsChoices = getNewAbsChoices(newSpelling);
-  console.log(newAbsChoices);
-
   const voiceLeading = voiceLead(oldChordObj.absVals, newAbsChoices);
-  console.log(voiceLeading);
+  const newNoteNames = voiceLeading.map((val) => absValNotes[val]);
+  const freqs = newNoteNames.map((note) => noteFreqs[note]);
 
-  // return `newChordObj`
-  // const newChordObj = {
-  //   chord: newChord,
-  //   // TODO!
-  // };
+  const root =
+    newNoteNames[newNoteNames.findIndex((note) => note.includes(newRoot))];
+  const third =
+    newNoteNames[newNoteNames.findIndex((note) => note.includes(newThird))];
+  const fifth =
+    newNoteNames[newNoteNames.findIndex((note) => note.includes(newFifth))];
+
+  const newChordObj = {
+    chord: newChord,
+    absVals: voiceLeading,
+    freqs,
+    root,
+    third,
+    fifth,
+  };
+
+  return newChordObj;
 }
 
 function getNewAbsChoices(newSpelling) {
@@ -207,17 +220,25 @@ function getNewAbsChoices(newSpelling) {
   return newAbsChoices;
 }
 
-// TODO: Finish logic!
 function voiceLead(oldAbsVals, newAbsChoices) {
   const bestChoices = {};
   for (const oldVal of oldAbsVals) {
     bestChoices[oldVal] = calculateBestChoices(oldVal, newAbsChoices);
   }
 
-  for (const key in bestChoices) {
-    console.log(key);
-    console.log(bestChoices[key]);
-  }
+  // TESTING: for viewing inner k/v's (sans JSON.stringify()):
+  // for (const key in bestChoices) {
+  //   console.log(key);
+  //   console.log(bestChoices[key]);
+  // }
+
+  const configurations = generateLeads(bestChoices);
+  const validConfigs = configurations.filter(
+    (config) => !hasDuplicateNote(config),
+  );
+  const sortedConfigs = validConfigs.sort((a, b) => a.diff - b.diff);
+
+  return sortedConfigs[0].vals;
 }
 
 function calculateBestChoices(oldVal, newAbsChoices) {
@@ -252,6 +273,64 @@ function calculateBestChoices(oldVal, newAbsChoices) {
   return { low, hi };
 }
 
+function generateLeads(bestChoices) {
+  const choiceKeys = Object.keys(bestChoices);
+  let configurations = [{ vals: [], diff: 0 }];
+
+  for (const key of choiceKeys) {
+    const choices = [
+      bestChoices[key].low.first.val,
+      bestChoices[key].low.second.val,
+      bestChoices[key].hi.first.val,
+      bestChoices[key].hi.second.val,
+    ].filter((choice) => choice.val !== null);
+
+    // trying to tie choices with diff values
+    const diffs = [
+      bestChoices[key].low.first.diff,
+      bestChoices[key].low.second.diff,
+      bestChoices[key].hi.first.diff,
+      bestChoices[key].hi.second.diff,
+    ].filter((diff) => diff.diff !== null);
+
+    configurations = generateConfigs(configurations, choices, diffs);
+  }
+
+  return configurations;
+}
+
+function generateConfigs(currentConfigs, choices, diffs) {
+  const newConfigs = [];
+  for (const config of currentConfigs) {
+    for (let i = 0; i < choices.length; i++) {
+      const choice = choices[i];
+      const diff = diffs[i];
+
+      newConfigs.push({
+        vals: [...config.vals, choice],
+        diff: config.diff + diff,
+      });
+    }
+  }
+
+  return newConfigs;
+}
+
+function hasDuplicateNote(config) {
+  const noteSet = new Set();
+
+  for (const val of config.vals) {
+    const noteName = absValNotes[val].slice(0, -1);
+    if (noteSet.has(noteName)) {
+      return true;
+    }
+
+    noteSet.add(noteName);
+  }
+
+  return false;
+}
+
 //
 //
 
@@ -262,3 +341,4 @@ function calculateBestChoices(oldVal, newAbsChoices) {
 // -- range plays a factor here: need a flag for "up / down / either" for instances where 'lower' or 'higher' may not exist (grab `next` of whichever DOES exist)
 // -- -- this is ESPECIALLY true since we won't allow our full "range" (chords and their tones should probably be within the '2nd'/'3rd' octave range to the '6th' to avoid extremes)
 // -- -- maybe use absolute note values to compare 'distance' (in reference to half steps) between notes rather than the actual freq values (which are logarithmic)
+// -- eventually, create means to adjust overall chord tone 'range'
