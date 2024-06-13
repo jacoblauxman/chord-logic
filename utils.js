@@ -38,7 +38,7 @@ export function parseName(chordName) {
     name = name.toUpperCase() + "b";
     name = `${enharmonics[name]}/${name}`;
   } else if (!checked) {
-    [name, qual] = [chordName.slice(0, 1), chordName.slice(1)];
+    [name, qual] = [chordName.slice(0, 1).toUpperCase(), chordName.slice(1)];
   } else {
     qual = chordName.slice(2);
   }
