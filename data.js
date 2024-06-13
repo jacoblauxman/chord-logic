@@ -76,19 +76,3 @@ export const chordSpellings = {
   Baug: ["B", "D#/Eb", "G"],
   Bdim: ["B", "D", "F"],
 };
-
-// for ensuring the 'root' note with default vallues (picking from '3/4' octave range) is lowest note in frequencies returned
-export const absoluteNoteVals = {
-  C: 0,
-  "C#/Db": 1,
-  D: 2,
-  "D#": 3,
-  E: 4,
-  F: 5,
-  "F#/Gb": 6,
-  G: 7,
-  "G#/Ab": 8,
-  A: 9,
-  "A#/Bb": 10,
-  B: 11,
-};
