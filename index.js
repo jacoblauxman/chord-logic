@@ -106,18 +106,18 @@ function parseName(chordName) {
 
   if (chordName.includes("#")) {
     [name, qual] = [chordName.slice(0, 2), chordName.slice(2)];
-    name = `${name} /${enharmonics[name]}`;
+    name = `${name}/${enharmonics[name]}`;
   } else if (chordName.includes("b")) {
     [name, qual] = [chordName.slice(0, 2), chordName.slice(2)];
     name = `${enharmonics[name]}/${name}`;
   } else {
     [name, qual] = [chordName.slice(0, 1), chordName.slice(1)];
+  }
 
-    // default to major (as you do)
-    if (qual === "") {
-      // I think we can just trim this down to an empty string value, no need for `undefined/null` check(?)
-      qual = "maj";
-    }
+  // default to major (as you do)
+  if (qual === "") {
+    // I think we can just trim this down to an empty string value, no need for `undefined/null` check(?)
+    qual = "maj";
   }
 
   return [name, qual];
@@ -170,15 +170,17 @@ function getDefaultChord() {
   return chordObj;
 }
 
-function getNewChord(chordObj, newChordName) {
-  if (!chordObj) {
+function getNewChord(oldChordObj, newChordName) {
+  if (!oldChordObj) {
     console.log("Note: must set default chord first!");
     return;
   }
 
   // parse
   const [newName, newQual] = parseName(newChordName);
+
   const newChord = `${newName}${newQual}`;
+  console.log(newChord);
   // get notes
   const newSpelling = getChordSpelling(newChord);
   console.log(newSpelling);
@@ -186,7 +188,7 @@ function getNewChord(chordObj, newChordName) {
   const newAbsChoices = getNewAbsChoices(newSpelling);
   console.log(newAbsChoices);
 
-  const voiceLeading = voiceLead(chordObj.absVals, newAbsChoices);
+  const voiceLeading = voiceLead(oldChordObj.absVals, newAbsChoices);
   console.log(voiceLeading);
 
   // return `newChordObj`
@@ -199,17 +201,61 @@ function getNewChord(chordObj, newChordName) {
 function getNewAbsChoices(newSpelling) {
   let newAbsChoices = [];
   for (const noteName of newSpelling) {
-    newAbsChoices = [absByNote[noteName], ...newAbsChoices];
+    newAbsChoices = newAbsChoices.concat(absByNote[noteName]);
   }
 
   return newAbsChoices;
 }
 
-function voiceLead(oldAbs, newAbsChoices) {
-  // TODO!
+// TODO: Finish logic!
+function voiceLead(oldAbsVals, newAbsChoices) {
+  const bestChoices = {};
+  for (const oldVal of oldAbsVals) {
+    bestChoices[oldVal] = calculateBestChoices(oldVal, newAbsChoices);
+  }
+
+  for (const key in bestChoices) {
+    console.log(key);
+    console.log(bestChoices[key]);
+  }
 }
 
-// TODO:
+function calculateBestChoices(oldVal, newAbsChoices) {
+  let low = {
+    first: { diff: Infinity, val: null },
+    second: { diff: Infinity, val: null },
+  };
+  let hi = {
+    first: { diff: Infinity, val: null },
+    second: { diff: Infinity, val: null },
+  };
+
+  for (const newVal of newAbsChoices) {
+    let diff = Math.abs(newVal - oldVal);
+
+    if (newVal <= oldVal) {
+      if (diff < low.first.diff) {
+        low.second = { ...low.first };
+        low.first = { diff, val: newVal };
+      } else if (diff < low.second.diff) {
+        low.second = { diff, val: newVal };
+      }
+    } else {
+      if (diff < hi.first.diff) {
+        hi.second = { ...hi.first };
+        hi.first = { diff, val: newVal };
+      } else if (diff < hi.second.diff) {
+        hi.second = { diff, val: newVal };
+      }
+    }
+  }
+  return { low, hi };
+}
+
+//
+//
+
+// TODO NOTES:
 // - match each 'new note' to its given array values of freqs (`octaveFreqs`)
 // - make an object of comparison values to 'old note' freqs -> helper function:
 // -- helper iterates through each 'new note' freq arr to find two 'closest' (one below / 'lower' and one above / 'higher') of EACH 'old note' freq
