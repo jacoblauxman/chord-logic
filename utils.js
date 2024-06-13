@@ -4,18 +4,43 @@ import { absByNote, absValNotes } from "./setup.js";
 export function parseName(chordName) {
   let name;
   let qual;
+  let checked = false;
+
+  // enharmonics edge case (think you're funny with the inputs? no Cb / B# or E# / Fb for me, please!)
+  switch (chordName.slice(0, 2)) {
+    case "B#":
+      name = "C";
+      checked = true;
+      break;
+    case "Cb":
+      name = "B";
+      checked = true;
+      break;
+    case "E#":
+      name = "F";
+      checked = true;
+      break;
+    case "Fb":
+      name = "E";
+      checked = true;
+      break;
+    default:
+      break;
+  }
 
   // handling enharmonic / natural spelling
-  if (chordName.includes("#")) {
+  if (chordName.includes("#") && !checked) {
     [name, qual] = [chordName.slice(0, 1), chordName.slice(2)];
     name = name.toUpperCase() + "#";
     name = `${name}/${enharmonics[name]}`;
-  } else if (chordName.includes("b")) {
+  } else if (chordName.includes("b") && !checked) {
     [name, qual] = [chordName.slice(0, 1), chordName.slice(2)];
     name = name.toUpperCase() + "b";
     name = `${enharmonics[name]}/${name}`;
-  } else {
+  } else if (!checked) {
     [name, qual] = [chordName.slice(0, 1), chordName.slice(1)];
+  } else {
+    qual = chordName.slice(2);
   }
 
   // default to major (as you do)
@@ -30,7 +55,6 @@ export function parseName(chordName) {
     qual = "dim";
   }
 
-  name = name;
   return [name, qual];
 }
 
