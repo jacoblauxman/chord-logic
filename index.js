@@ -19,8 +19,15 @@ const newChordName = process.argv[3];
 //
 
 // RUNNING SCRIPT (for now)
-const { octaveFreqs, noteFreqs, freqNames, absNoteVals, absValNotes } =
-  createNotesObjects();
+const {
+  octaveFreqs,
+  noteFreqs,
+  freqNames,
+  absNoteVals,
+  absValNotes,
+  absByNote,
+} = createNotesObjects();
+
 if (chordName) {
   let parsed = parseName(chordName);
   let defaultChord = getDefaultChord(parsed);
@@ -48,6 +55,10 @@ function createNotesObjects() {
   const freqNames = {};
   const absNoteVals = {};
   const absValNotes = {};
+  const absByNote = noteNames.reduce(
+    (acc, curr) => ((acc[curr] = []), acc),
+    {},
+  );
   let val = 0;
 
   const dataLines = fileData.split("\n");
@@ -62,14 +73,22 @@ function createNotesObjects() {
       octaveFreqs[name].push(freq);
       noteFreqs[tone] = freq;
       freqNames[`${freq}`] = tone;
-      // test for making 'weighted' note+octave values
+      // test for making 'weighted' note+octave values (for cmp, instead of frequency values)
       absNoteVals[tone] = val;
       absValNotes[val] = tone;
+      absByNote[name].push(val);
       val += 1;
     }
   });
 
-  return { octaveFreqs, noteFreqs, freqNames, absNoteVals, absValNotes };
+  return {
+    octaveFreqs,
+    noteFreqs,
+    freqNames,
+    absNoteVals,
+    absValNotes,
+    absByNote,
+  };
 }
 
 function parseData(regex, line) {
@@ -114,7 +133,7 @@ function getDefaultChord() {
   const [name, qual] = parseName(chordName);
   let chord = `${name}${qual}`;
 
-  // // TESTING: for working with 'default' values (without yet making separate data structure for those spellings):
+  // // TESTING: for working with 'default' chord values (without yet making separate data structure for those spellings):
   let [root, third, fifth] = getChordSpelling(chord);
 
   let rootFreq = noteFreqs[`${root}3`];
@@ -134,8 +153,14 @@ function getDefaultChord() {
     notesOct = rootOct;
   }
 
+  const absVals = [rootFreq, thirdFreq, fifthFreq].map((freq) => {
+    const name = freqNames[`${freq}`];
+    return absNoteVals[name];
+  });
+
   let chordObj = {
     chord,
+    absVals,
     freqs: [rootFreq, thirdFreq, fifthFreq],
     root: `${root}${rootOct}`,
     third: `${third}${notesOct}`,
@@ -154,29 +179,35 @@ function getNewChord(chordObj, newChordName) {
   // parse
   const [newName, newQual] = parseName(newChordName);
   const newChord = `${newName}${newQual}`;
-  // console.log(newChord);
   // get notes
   const newSpelling = getChordSpelling(newChord);
   console.log(newSpelling);
-  // find choices
-  const choices = getRelativeChordTones(chordObj, newSpelling);
+  // find best choices
+  const newAbsChoices = getNewAbsChoices(newSpelling);
+  console.log(newAbsChoices);
+
+  const voiceLeading = voiceLead(chordObj.absVals, newAbsChoices);
+  console.log(voiceLeading);
+
+  // return `newChordObj`
+  // const newChordObj = {
+  //   chord: newChord,
+  //   // TODO!
+  // };
 }
 
-function getRelativeChordTones(chordObj, newSpelling) {
-  let absOldRoot = absNoteVals[chordObj.root];
-  let absOldThird = absNoteVals[chordObj.third];
-  let absOldFifth = absNoteVals[chordObj.fifth];
+function getNewAbsChoices(newSpelling) {
+  let newAbsChoices = [];
+  for (const noteName of newSpelling) {
+    newAbsChoices = [absByNote[noteName], ...newAbsChoices];
+  }
 
-  console.log(absOldRoot, absOldThird, absOldFifth);
-  // let oldRootFreq = chordObj.freqs[0];
-  // let oldThirdFreq = chordObj.freqs[1];
-  // let oldFifthFreq = chordObj.freqs[2];
-  // for newTone of newSpelling {
-  // findBestChoices()
-  // }
+  return newAbsChoices;
 }
 
-// function findBestChoices(oldFreq, newTone) { }
+function voiceLead(oldAbs, newAbsChoices) {
+  // TODO!
+}
 
 // TODO:
 // - match each 'new note' to its given array values of freqs (`octaveFreqs`)
