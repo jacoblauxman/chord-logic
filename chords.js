@@ -6,6 +6,7 @@ import {
 } from "./utils.js";
 
 import { absNoteVals, absValNotes, freqNames, noteFreqs } from "./setup.js";
+// TODO: implement check for 7th / sus chord for both chords -- create `seventh` + `fourth` k/v pair -- allow nullable values
 
 // generates first chord provided by input - defaults to octave range of '4-5'
 export function getDefaultChord(chordName) {

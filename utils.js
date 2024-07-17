@@ -43,6 +43,17 @@ export function parseName(chordName) {
     qual = chordName.slice(2);
   }
 
+  // EXPERIMENTING:
+  // if (qual.includes("7")) {
+  //   console.log(qual);
+  //   const upperCheck = qual.toUpperCase();
+  //   if (qual === "M7" || qual === "^7" || upperCheck === "MAJ7") {
+  //     qual = "maj7";
+  //   } else if (qual === "m7" || qual === "-7" || upperCheck === "MIN7") {
+  //     qual = "min7";
+  //   }
+  // }
+
   // default to major (as you do)
   if (qual === "") {
     // no need for `undefined/null` check(?)
@@ -53,6 +64,8 @@ export function parseName(chordName) {
     qual = "aug";
   } else if (qual === "o" || qual === "0" || qual === "°" || qual === "ø") {
     qual = "dim";
+  } else if (qual === "s" || qual === "4") {
+    qual = "sus";
   }
 
   return [name, qual];
